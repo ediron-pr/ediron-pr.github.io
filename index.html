@@ -42,7 +42,7 @@
 
 
 <body>
-  <header style="height: 85vh;">
+  <header style="height: 100vh;">
     <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
   <div class="container">
     <a class="navbar-brand"
@@ -123,6 +123,10 @@
           </div>
 
           
+            <div class="scroll-down-bar">
+              <i class="fas fa-angle-down scroll-down-arrow"></i>
+            </div>
+          
         </div>
       </div>
     </div>
@@ -155,8 +159,6 @@
         <div class="index-excerpt" >
           <div class="index-text mb-1">Java：访问修饰符及相关概念
 
-
-
 四个修饰符基本概念
 
 访问权限：public &gt; protected &gt; default &gt; private
@@ -165,7 +167,7 @@
 
 public ——访问权限最大的修饰符，被它修饰的类、属性和方法可以在本类内部、别的类中以及别的包中使用。
 protected ——访问权限介于public和private之间，被它修饰的属性和方法能被本类内部、本包中的其他类以及继承于本类的子类（子类可以是在别的包）使用。
-default ——使用时可以省略（即在定义属性和方法时如果不加任何修饰符就等于使用default修饰）。它和protected修饰符的唯一区别就是pr</div>
+default ——使用时可以省略（即在定义属性和方法时如果不加任何修饰符就等于使用default修饰）。它和protected修饰符的唯一区别就是prot</div>
         </div>
       </a>
 
@@ -285,8 +287,6 @@ default ——使用时可以省略（即在定义属性和方法时如果不加
 
 
 
-  <script defer src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
-
 
 
 
@@ -309,10 +309,10 @@ default ——使用时可以省略（即在定义属性和方法时如果不加
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "make each day count&nbsp;",
+        "Make Each Day Count&nbsp;",
       ],
       cursorChar: "..",
-      typeSpeed: 60,
+      typeSpeed: 70,
       loop: false,
     });
     typed.stop();
@@ -327,7 +327,7 @@ default ——使用时可以省略（即在定义属性和方法时如果不加
   <script  src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js" ></script>
   <script>
     anchors.options = {
-      placement: "right",
+      placement: "left",
       visible: "hover",
       
       icon: "§"
