@@ -591,6 +591,7 @@ h6::before {
   margin: -8rem auto 1rem;
   max-width: 10rem;
   z-index: 3;
+  iconfont: icon-telegram-fill;
 }
 .category-tree-list {
   font-size: 1rem;
