@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/ironman.png">
+  <link rel="icon" type="image/png" href="/img/ironman.png">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="description" content="">
+  <meta name="author" content="ediron">
+  <meta name="keywords" content="">
+  <title>线程安全：继承类方式和实现接口方式以及同步代码块和同步方法的相关使用.md - ediron</title>
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/mdbootstrap/4.13.0/css/mdb.min.css" />
+<link  rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/3.0.1/github-markdown.min.css" />
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1067060_qzomjdt8bmp.css">
+
+
+
+  <link  rel="stylesheet" href="/lib/prettify/tomorrow-night-eighties.min.css" />
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+<!-- 自定义样式保持在最底部 -->
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+
+<body>
+  <header style="height: 100vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand"
+       href="/">&nbsp;<strong>ediron</strong>&nbsp;</a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/">Home</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/archives/">Archives</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/categories/">Categories</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/tags/">Tags</a>
+          </li>
+        
+          
+          
+          
+          
+          <li class="nav-item">
+            <a class="nav-link" href="/about/">About</a>
+          </li>
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;&nbsp;<i
+                class="iconfont icon-search"></i>&nbsp;&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="view intro-2" id="background" false
+         style="background: url('/img/Java3.jpg') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask rgba-black-light flex-center">
+          <div class="container text-center white-text fadeInUp">
+            <span class="h2" id="subtitle">
+              
+            </span>
+
+            
+              
+                <p class="mt-3 post-meta">
+                  <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                  Thursday, May 28th 2020, 10:00 pm
+                </p>
+              
+
+              <p class="mt-1">
+                
+                  
+                  <span class="post-meta">
+                    <i class="far fa-chart-bar"></i>
+                    2.5k 字
+                  </span>
+                
+
+                
+
+                
+                  <!-- 不蒜子统计文章PV -->
+                  
+                  <span id="busuanzi_container_page_pv" class="post-meta" style="display: none">
+                    <i class="far fa-eye" aria-hidden="true"></i>
+                    <span id="busuanzi_value_page_pv"></span> 次
+                  </span>
+                
+              </p>
+            
+          </div>
+
+          
+            <div class="scroll-down-bar">
+              <i class="fas fa-angle-down scroll-down-arrow"></i>
+            </div>
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-md">
+      <div class="py-5 z-depth-3" id="board">
+        <div class="post-content mx-auto" id="post">
+          
+            <p class="note note-warning">本文最后更新于：Thursday, May 28th 2020, 9:59 pm</p>
+          
+          <div class="markdown-body">
+            <p>需求：有两个线程，一个打印奇数，一个打印偶数，两个线程启动后，每次打印都必须是连续5个奇数或连续5个偶数，奇偶之间的交替不作要求。</p>
+<p><strong>①继承类+同步代码块</strong></p>
+<p>继承两个「Thread」类，分别实现打印奇数和偶数的方法，将打印的代码加锁，每次只能是一个线程进行打印</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Test0</span> </span>&#123;</span><br><span class="line">	<span class="comment">//继承Thread类方式，创建两种功能的Thread类：ThreadOdd、ThreadEven</span></span><br><span class="line">	<span class="comment">//并使用「字符串同步锁」保证线程安全</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="comment">//创建奇、偶功能的线程</span></span><br><span class="line">		<span class="keyword">new</span> ThreadOdd().start();</span><br><span class="line">		<span class="keyword">new</span> ThreadEven().start();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//打印奇数的线程</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ThreadOdd</span> <span class="keyword">extends</span> <span class="title">Thread</span></span>&#123;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="comment">//进入无限循环打印</span></span><br><span class="line">		<span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</span><br><span class="line">			<span class="comment">//通过「字符串同步锁」来实现不同类的线程之间的互斥访问</span></span><br><span class="line">			<span class="comment">//使得每次只能有一个线程在打印</span></span><br><span class="line">			<span class="keyword">synchronized</span> (<span class="string">"print"</span>) &#123;</span><br><span class="line">				<span class="keyword">try</span> &#123;</span><br><span class="line">					<span class="comment">//连续打印5个奇数</span></span><br><span class="line">					<span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= <span class="number">5</span>; i++) &#123;</span><br><span class="line">						<span class="comment">//每次打印间隔0.1秒</span></span><br><span class="line">						Thread.sleep(<span class="number">100</span>);</span><br><span class="line">						System.out.println(i+<span class="string">" Printing Odd..."</span>);</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="comment">//每打印5个空一行</span></span><br><span class="line">					System.out.println();</span><br><span class="line">				&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">					e.printStackTrace();</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//打印偶数的线程</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ThreadEven</span> <span class="keyword">extends</span> <span class="title">Thread</span></span>&#123;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="comment">//进入无限循环打印</span></span><br><span class="line">		<span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</span><br><span class="line">			<span class="comment">//通过「字符串同步锁」来实现不同类的线程之间的互斥访问</span></span><br><span class="line">			<span class="comment">//使得每次只能有一个线程在打印</span></span><br><span class="line">			<span class="keyword">synchronized</span> (<span class="string">"print"</span>) &#123;</span><br><span class="line">				<span class="keyword">try</span> &#123;</span><br><span class="line">					<span class="comment">//连续打印5个偶数</span></span><br><span class="line">					<span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= <span class="number">5</span>; i++) &#123;</span><br><span class="line">						<span class="comment">//每次打印间隔0.1秒</span></span><br><span class="line">						Thread.sleep(<span class="number">100</span>);</span><br><span class="line">						System.out.println(i+<span class="string">" Printing Even..."</span>);</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="comment">//每打印5个空一行</span></span><br><span class="line">					System.out.println();</span><br><span class="line">				&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">					e.printStackTrace();</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>这个例子验证了，即使在是不同的类中，只要同步代码块的锁对象相同（上例中都使用字符串「print」作为锁对象），就能对代码进行锁定。</p>
+</blockquote>
+<p>这样看来，『能在不同类中进行同步的操作』的依据是：可以使用「同步代码块」的「锁对象」，进行跨类锁定，不管<strong>线程对象</strong>是否是<strong>同类</strong>，只要「同步代码块」的「锁对象」一致，就能保证线程安全。</p>
+<p>因此可以推测出，<strong>「同步方法」是不能进行跨类同步的</strong>，因为在『继承类的方式』中，同步方法的本质是『隐含的锁对象是类的Class对象』，所以<strong>不同类</strong>的线程的「Class对象」不一致，也就不能够满足方法的锁对象一致，正是这一点导致要进行<strong>跨类同步</strong>不能使用<strong>「同步方法」</strong>。（『实现接口的方式』就更不可能使用「同步方法」了）</p>
+<p>而要想两个线程实现不同的功能，就只能是使用『继承类的方式』来创建线程。因为『实现接口的方式』创建的「Target」对象都是同一个类，而用其创建出的「Thread」对象都是同样的实现功能，无法满足不同线程实现不同功能的需求。</p>
+<p>不过也是可以强行使用『实现接口的方式』的：</p>
+<p>创建两个不同功能的「Target」对象，再分别用这两个「Target」对象创建两个「Thread」类，这样是可以达到『不同功能的线程实现同步锁』的需求的，代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Test1</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//实现Runnable接口方式，分别用两种功能的Target来创建对应两种功能的Thread类：TargetOdd、TargetEven</span></span><br><span class="line">	<span class="comment">//并使用「字符串同步锁」保证线程安全</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">		</span><br><span class="line">        <span class="comment">//用奇偶功能的Target分别创建奇、偶线程</span></span><br><span class="line">		<span class="keyword">new</span> Thread(<span class="keyword">new</span> TargetOdd()).start();</span><br><span class="line">		<span class="keyword">new</span> Thread(<span class="keyword">new</span> TargetEven()).start();</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//打印奇数的Target</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TargetOdd</span> <span class="keyword">implements</span> <span class="title">Runnable</span></span>&#123;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="comment">//进入无限打印循环</span></span><br><span class="line">		<span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</span><br><span class="line">			<span class="comment">//通过「字符串同步锁」来实现不同类的线程之间的互斥访问</span></span><br><span class="line">			<span class="comment">//使得每次只能有一个线程在打印</span></span><br><span class="line">			<span class="keyword">synchronized</span> (<span class="string">"print"</span>) &#123;</span><br><span class="line">				<span class="keyword">try</span> &#123;</span><br><span class="line">					<span class="comment">//连续5次打印</span></span><br><span class="line">					<span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= <span class="number">5</span>; i++) &#123;</span><br><span class="line">						Thread.sleep(<span class="number">100</span>);</span><br><span class="line">						System.out.println(i+<span class="string">" Printing Odd..."</span>);</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="comment">//每5个空一行</span></span><br><span class="line">					System.out.println();</span><br><span class="line">				&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">					e.printStackTrace();</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//打印偶数的Target</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TargetEven</span> <span class="keyword">implements</span> <span class="title">Runnable</span></span>&#123;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="comment">//进入无限打印循环</span></span><br><span class="line">		<span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</span><br><span class="line">			<span class="comment">//通过「字符串同步锁」来实现不同类的线程之间的互斥访问</span></span><br><span class="line">			<span class="comment">//使得每次只能有一个线程在打印</span></span><br><span class="line">			<span class="keyword">synchronized</span> (<span class="string">"print"</span>) &#123;</span><br><span class="line">				<span class="keyword">try</span> &#123;</span><br><span class="line">					<span class="comment">//连续5次打印</span></span><br><span class="line">					<span class="keyword">for</span>(<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= <span class="number">5</span>; i++) &#123;</span><br><span class="line">						Thread.sleep(<span class="number">100</span>);</span><br><span class="line">						System.out.println(i+<span class="string">" Printing Even..."</span>);</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="comment">//每5个空一行</span></span><br><span class="line">					System.out.println();</span><br><span class="line">				&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">					e.printStackTrace();</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>不过这样做的意义不大，甚至可能没必要这样做，因为这跟上面『继承类的方式』的原理一样，都是通过创建两个不同的「Thread」类来区分功能的。</p>
+</blockquote>
+<p><strong>综上所述，要实现这个需求（不同功能的线程在运行时保证线程安全），其关键两点是①两个线程分别实现两种功能②两个线程的功能还要保持互斥访问（线程安全）。第①点通过两个继承「Thread」类来实现不同功能，第②点通过同步代码块的「字符串锁对象」来实现互斥访问。</strong></p>
+<p>那么要想实现<strong>不同功能的线程</strong>的<strong>线程安全问题</strong>，就只能使用『继承类的方式』+『同步代码块』这个组合吗？</p>
+<p>其实还可以有另外一种思路，这种思路解放了前面被种种限制的方式。</p>
+<p>这种思路是我在思考这个需求时最初就想到的（说实话，其实是因为我当时根本不知道还能有跨类同步这种操作），而当时我的想法是：实现同步的前提就是对两个线程的<strong>执行代码</strong>进行<strong>「加锁」</strong>，而要<strong>「加锁」</strong>就只能是让两个线程对象属于同一个类，这样才能使它们共用同一个被<strong>「加锁」</strong>代码。</p>
+<p>但是，顾此就会失彼，让两个线程共用同一个「同步代码块」就无法达到分别实现它们各自的功能，真的无法吗？既然只能共用「同步代码块」，那么进入代码块之后有什么可以用来判断区分两个线程呢？<strong>名字！</strong>我突然想起线程是有名字的！这样问题就可以解决了。</p>
+<p>根据这个思路，我们使用实现类也是可以做到的，使用同样的「Target」创建的两个「Thread」对象，进入到同步代码块之后，再根据各自的名字判断执行对应的功能（打印奇、偶）。</p>
+<p><strong>②实现接口+同步代码块</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Test2</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//实现Runnable接口方式，用一个内部有两种功能的Target创建Thread类：Target1</span></span><br><span class="line">	<span class="comment">//并使用「当前对象同步锁」保证线程安全</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">		<span class="comment">//创建内部有两种功能的Target</span></span><br><span class="line">		Target1 myTarget = <span class="keyword">new</span> Target1();</span><br><span class="line">		<span class="comment">//使用同一个Target创建奇、偶线程</span></span><br><span class="line">		<span class="keyword">new</span> Thread(myTarget, <span class="string">"奇数"</span>).start();</span><br><span class="line">		<span class="keyword">new</span> Thread(myTarget, <span class="string">"偶数"</span>).start();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Target1</span> <span class="keyword">implements</span> <span class="title">Runnable</span></span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="comment">//进入无限打印循环</span></span><br><span class="line">		<span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</span><br><span class="line">			<span class="comment">//每次循环只能有一个线程在打印，并且连续打印5个，再进入下一次循环</span></span><br><span class="line">			<span class="keyword">synchronized</span> (<span class="keyword">this</span>) &#123;</span><br><span class="line">				<span class="comment">//连续打印5个</span></span><br><span class="line">				<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= <span class="number">5</span>; i++) &#123;</span><br><span class="line">					<span class="comment">// 奇数线程</span></span><br><span class="line">					<span class="comment">//如果是奇数线程，就打印奇数</span></span><br><span class="line">					<span class="keyword">if</span> (<span class="string">"奇数"</span>.equals(Thread.currentThread().getName())) &#123;</span><br><span class="line">						<span class="comment">//省略打印奇数细节</span></span><br><span class="line">						System.out.println(i+<span class="string">" Printing Odd..."</span>);</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="comment">// 偶数线程</span></span><br><span class="line">					<span class="comment">//如果是偶数线程，就打印偶数</span></span><br><span class="line">					<span class="keyword">if</span> (<span class="string">"偶数"</span>.equals(Thread.currentThread().getName())) &#123;</span><br><span class="line">						<span class="comment">//省略打印偶数细节</span></span><br><span class="line">						System.out.println(i+<span class="string">" Printing Even..."</span>);</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="comment">//每打印一个，停顿0.1秒</span></span><br><span class="line">					<span class="keyword">try</span> &#123;</span><br><span class="line">						Thread.sleep(<span class="number">100</span>);</span><br><span class="line">					&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">						e.printStackTrace();</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="comment">//每打印5个空一行</span></span><br><span class="line">				System.out.println();</span><br><span class="line">			&#125;</span><br><span class="line">			</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>虽然代码有些繁琐，可读性有点低，但确实是可以实现这个需求的，这样就不用非要使用两个类来实现不同的功能。</p>
+</blockquote>
+<p>前面说到，由于「同步方法」不能用于跨类同步，那么就不让它跨类呗。这个思路的好处就是，不管是使用『继承类的方式』还是『实现接口的方式』，都让线程进入到同步区域内再做判断，还是根据线程的名字决定其执行的功能。</p>
+<p><strong>③实现接口+同步方法</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Test3</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//实现Runnable接口方式，用一个内部有两种功能的Target创建Thread类：Target2</span></span><br><span class="line">	<span class="comment">//并使用静态「同步方法」保证线程安全</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">		</span><br><span class="line">		Target2 oneTarget = <span class="keyword">new</span> Target2();</span><br><span class="line">		<span class="keyword">new</span> Thread(oneTarget, <span class="string">"奇数"</span>).start();</span><br><span class="line">		<span class="keyword">new</span> Thread(oneTarget, <span class="string">"偶数"</span>).start();</span><br><span class="line">		</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Target2</span> <span class="keyword">implements</span> <span class="title">Runnable</span></span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">//调用打印方法</span></span><br><span class="line">		<span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</span><br><span class="line">			print();</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">print</span><span class="params">()</span> </span>&#123;</span><br><span class="line">			<span class="comment">//连续打印5个</span></span><br><span class="line">			<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt;= <span class="number">5</span>; i++) &#123;</span><br><span class="line">				<span class="comment">// 奇数线程</span></span><br><span class="line">				<span class="comment">//如果是奇数线程，就打印奇数</span></span><br><span class="line">				<span class="keyword">if</span> (<span class="string">"奇数"</span>.equals(Thread.currentThread().getName())) &#123;</span><br><span class="line">						<span class="comment">//省略打印奇数细节</span></span><br><span class="line">						System.out.println(i+<span class="string">" Printing Odd..."</span>);</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="comment">// 偶数线程</span></span><br><span class="line">				<span class="comment">//如果是偶数线程，就打印偶数</span></span><br><span class="line">				<span class="keyword">if</span> (<span class="string">"偶数"</span>.equals(Thread.currentThread().getName())) &#123;</span><br><span class="line">						<span class="comment">//省略打印偶数细节</span></span><br><span class="line">						System.out.println(i+<span class="string">" Printing Even..."</span>);</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="comment">//每打印一个，停顿0.1秒</span></span><br><span class="line">				<span class="keyword">try</span> &#123;</span><br><span class="line">					Thread.sleep(<span class="number">100</span>);</span><br><span class="line">				&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">					e.printStackTrace();</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">//每打印5个空一行</span></span><br><span class="line">			System.out.println();</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>虽然使用了这个思路后，两种实现接口的方式也可以解决问题，但应该还是没有第一种『继承类+同步代码块』效率高，所以推荐使用第一种方式。</p>
+</blockquote>
+<p><strong>最后作一些总结：</strong></p>
+<ol>
+<li><strong>『继承类的方式』更适用于创建不同功能的线程</strong></li>
+<li><strong>『实现接口的方式』更适用于创建同样功能的线程</strong></li>
+<li><strong>「同步代码块」更适用于不同功能的线程</strong></li>
+<li><strong>「同步方法」更适用于同样功能的线程</strong></li>
+</ol>
+<p>解决问题的方法有很多，而具体方案还要根据具体问题进行分析。</p>
+
+            <hr>
+          </div>
+          <br>
+          <div>
+            <p>
+            
+              <span>
+                <i class="iconfont icon-inbox"></i>
+                
+                  <a class="hover-with-bg" href="/categories/Java/">Java</a>
+                  &nbsp;
+                
+              </span>&nbsp;&nbsp;
+            
+              
+              <span>
+                <i class="iconfont icon-tag"></i>
+                
+                  <a class="hover-with-bg" href="/tags/technology/">technology</a>
+                
+              </span>
+            
+            </p>
+            
+              <p class="note note-warning">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/Wikipedia:CC_BY-SA_3.0%E5%8D%8F%E8%AE%AE%E6%96%87%E6%9C%AC" target="_blank" rel="nofollow noopener noopener">CC BY-SA 3.0协议</a> 。转载请注明出处！</p>
+            
+          </div>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container">
+        <div id="toc">
+  <p class="h5"><i class="far fa-list-alt"></i>&nbsp;TOC</p>
+  <div id="tocbot"></div>
+</div>
+      </div>
+    
+  </div>
+</div>
+
+<!-- custom -->
+
+
+<!-- Comments -->
+<div class="col-lg-7 mx-auto nopadding-md">
+  <div class="container comments mx-auto" id="comments">
+    
+  </div>
+</div>
+
+    
+  </main>
+
+  
+    <a class="z-depth-1" id="scroll-top-button" href="#" role="button">
+      <i class="fa fa-chevron-up scroll-top-arrow" aria-hidden="true"></i>
+    </a>
+  
+
+  
+    <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">Search</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">keyword</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+  
+
+  
+
+  
+
+  <footer class="mt-5">
+  <div class="text-center py-3">
+    <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><b>Hexo</b></a>
+    <i class="iconfont icon-love"></i>
+    <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"> <b>Fluid</b></a>
+
+    
+
+    
+
+    <!-- cnzz Analytics icon -->
+    
+  </div>
+</footer>
+
+<!-- SCRIPTS -->
+<script  src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js" ></script>
+<script  src="https://cdn.staticfile.org/popper.js/1.16.1/umd/popper.min.js" ></script>
+<script  src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js" ></script>
+<script  src="https://cdn.staticfile.org/mdbootstrap/4.13.0/js/mdb.min.js" ></script>
+<script  src="/js/main.js" ></script>
+
+
+  <script  src="/js/lazyload.js" ></script>
+
+
+
+  
+  <script  src="https://cdn.staticfile.org/tocbot/4.10.0/tocbot.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      var navHeight = $('#navbar').height();
+      var toc = $('#toc');
+      var main = $('main');
+      var tocT = navHeight + (toc.offset().top - main.offset().top);
+      var tocLimMin = main.offset().top - navHeight;
+      var tocLimMax = $('#comments').offset().top - navHeight;
+      $(window).scroll(function () {
+        var scroH = document.body.scrollTop + document.documentElement.scrollTop;
+        if (tocLimMin <= scroH && scroH <= tocLimMax) {
+          toc.css({
+            'display': 'block',
+            'position': 'fixed',
+            'top': tocT,
+          });
+        } else if (scroH <= tocLimMin) {
+          toc.css({
+            'position': '',
+            'top': '',
+          });
+        } else if (scroH > tocLimMax) {
+          toc.css('display', 'none');
+        }
+      });
+      tocbot.init({
+        tocSelector: '#tocbot',
+        contentSelector: '.post-content',
+        headingSelector: 'h1,h2,h3,h4,h5,h6',
+        linkClass: 'tocbot-link',
+        activeLinkClass: 'tocbot-active-link',
+        listClass: 'tocbot-list',
+        isCollapsedClass: 'tocbot-is-collapsed',
+        collapsibleClass: 'tocbot-is-collapsible',
+        scrollSmooth: true,
+      });
+      if ($('.toc-list-item').length > 0) {
+        $('#toc > p').css('visibility', 'visible');
+      }
+    });
+  </script>
+
+
+
+
+
+
+
+  <script defer src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
+
+
+
+
+<!-- Plugins -->
+
+
+
+  <script  src="https://cdn.staticfile.org/prettify/188.0.0/prettify.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      $('pre').addClass('prettyprint  linenums');
+      prettyPrint();
+    })
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js" ></script>
+  <script>
+    var typed = new Typed('#subtitle', {
+      strings: [
+        '  ',
+        "线程安全：继承类方式和实现接口方式以及同步代码块和同步方法的相关使用.md&nbsp;",
+      ],
+      cursorChar: "..",
+      typeSpeed: 70,
+      loop: false,
+    });
+    typed.stop();
+    $(document).ready(function () {
+      $(".typed-cursor").addClass("h2");
+      typed.start();
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js" ></script>
+  <script>
+    anchors.options = {
+      placement: "left",
+      visible: "hover",
+      
+      icon: "§"
+      
+    };
+    var el = "h1,h2,h3,h4,h5,h6".split(",");
+    var res = [];
+    for (item of el) {
+      res.push(".markdown-body > " + item)
+    }
+    anchors.add(res.join(", "))
+  </script>
+
+
+
+  <script  src="/js/local-search.js" ></script>
+  <script>
+    var path = "/local-search.xml";
+    var inputArea = document.querySelector("#local-search-input");
+    inputArea.onclick = function () {
+      getSearchFile(path);
+      this.onclick = null
+    }
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js" ></script>
+  <script>
+    $("#post img:not(.no-zoom img, img[no-zoom])").each(
+      function () {
+        var element = document.createElement("a");
+        $(element).attr("data-fancybox", "images");
+        $(element).attr("href", $(this).attr("src"));
+        $(this).wrap(element);
+      }
+    );
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
